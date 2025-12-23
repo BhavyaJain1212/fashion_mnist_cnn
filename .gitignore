@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environments
+myenv/
+venv/
+env/
+.venv/
+
+# PyTorch / models
+*.pth
+*.pt
+*.pkl
+
+# CUDA / Triton / binaries
+*.so
+*.a
+
+# OS
+.DS_Store
+
+# Logs
+*.log

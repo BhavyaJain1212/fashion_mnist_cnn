@@ -1,0 +1,42 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Fashion-MNIST VGG16 Predictor</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>Fashion-MNIST Predictor</h1>
+    <p class="subtext">
+      Paste <b>784</b> pixel values (0–255) separated by commas (28×28 image).
+    </p>
+
+    <form method="POST">
+      <label for="pixels">Please enter pixel values separated with comma</label>
+      <textarea id="pixels" name="pixels" placeholder="0,0,0, ..., 255 (total 784 values)" required>{{ request.form.get('pixels','') }}</textarea>
+      <button type="submit">Predict</button>
+    </form>
+
+    {% if prediction %}
+      <div class="card success">
+        <div class="title">Prediction</div>
+        <div class="value">{{ prediction }}</div>
+      </div>
+    {% endif %}
+
+    {% if error %}
+      <div class="card error">
+        <div class="title">Error</div>
+        <div class="value">{{ error }}</div>
+      </div>
+    {% endif %}
+
+    <div class="hint">
+      Tip: If you trained using different preprocessing (normalization/resizing), mirror it here too.
+    </div>
+  </div>
+</body>
+</html>
