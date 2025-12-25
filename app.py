@@ -3,27 +3,47 @@ from flask import Flask, render_template, request
 import torch
 import torch.nn as nn
 import numpy as np
-import torchvision.models as models
 import torch.nn.functional as F
 
 app = Flask(__name__)
 
-# --------------------
-# Model: VGG16 (must match training)
-# --------------------
-model = models.vgg16(weights=None)  # avoids downloading weights in deployment
+class MyNN(nn.Module):
+    def __init__(self, input_features):
+        super().__init__()
 
-model.classifier = nn.Sequential(
-    nn.Linear(25088, 1024),
-    nn.ReLU(),
-    nn.Dropout(0.5),
-    nn.Linear(1024, 512),
-    nn.ReLU(),
-    nn.Dropout(0.5),
-    nn.Linear(512, 10)
-)
+        self.features = nn.Sequential(
+            nn.Conv2d(input_features, 32, kernel_size=3, padding='same'),
+            nn.ReLU(),
+            nn.BatchNorm2d(32),
+            nn.MaxPool2d(kernel_size=2, stride=2),
 
-model.load_state_dict(torch.load("vgg16_best.pth", map_location="cpu"))
+            nn.Conv2d(32, 64, kernel_size=3, padding='same'),
+            nn.ReLU(),
+            nn.BatchNorm2d(64),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+        )
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(64*7*7, 128),
+            nn.ReLU(),
+            nn.Dropout(p=0.4),
+
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Dropout(p=0.4),
+
+            nn.Linear(64, 10),
+        )
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.classifier(x)
+
+        return x
+
+model = MyNN(input_features=1)
+
+model.load_state_dict(torch.load("cnn_best.pth", map_location="cpu"))
 model.eval()
 
 labels = [
@@ -32,39 +52,38 @@ labels = [
 ]
 
 # --------------------
-# Preprocess: pixels -> VGG input tensor
-# Matches your dataset steps:
-# reshape(28,28) -> uint8 -> stack 3 channels -> tensor -> resize to 224x224
-# --------------------
 def preprocess_pixels(pixel_str: str) -> torch.Tensor:
-    pixels = [float(p.strip()) for p in pixel_str.split(",")]
+    values = []
+    pixels = []
+    
+    for p in pixel_str.split(','):
+        p.strip()
+        values.append(p)
+
+    for p in values:
+        pixels.append(float(p))
+    
+    # print(f'values: {values}')
+    # print(f'pixels: {pixels}')
+
     if len(pixels) != 784:
-        print(len(pixels))
-        raise ValueError("Input must contain exactly 784 pixel values (28x28).")
+        raise ValueError(f"Input must contain exactly 784 pixel values (28 * 28)")
+    
+    # to numpy and reshape to (1, 28, 28) => (C, H, W)
+    image = np.array(pixels, dtype=np.float32).reshape(1, 28, 28)
 
-    # (28, 28)
-    image = np.array(pixels, dtype=np.float32).reshape(28, 28)
-
-    # uint8
-    image = image.astype(np.uint8)
-
-    # grayscale -> RGB (28, 28, 3)
-    image = np.stack([image] * 3, axis=-1)
-
-    # to torch tensor: (1, 3, 28, 28) in [0,1]
-    x = torch.from_numpy(image).permute(2, 0, 1).float() / 255.0
-    x = x.unsqueeze(0)
-
-    # VGG expects 224x224 for classifier input = 25088
-    x = F.interpolate(x, size=(224, 224), mode="bilinear", align_corners=False)
+    # to tensor
+    x = torch.from_numpy(image) / 255.0 # scaling between [0,1]
+    x = x.unsqueeze(0) # shape to (1, 1, 28, 28) => (B, C, H, W)
 
     return x
 
-# --------------------
+
 # Routes
-# --------------------
-@app.route("/", methods=["GET", "POST"])
-def index():
+
+@app.route("/", methods=["GET", "POST"]) # whenever there is an http get or post request, the function 
+                                             # home will be calles
+def home():
     prediction = None
     error = None
 
@@ -75,14 +94,13 @@ def index():
 
             with torch.no_grad():
                 output = model(x)
-                pred = torch.argmax(output, dim=1).item()
+                pred = torch.argmax(output, dim=1).item() # gives index
                 prediction = labels[pred]
 
         except Exception as e:
             error = str(e)
 
     return render_template("index.html", prediction=prediction, error=error)
-
 
 if __name__ == "__main__":
     app.run(debug=True)

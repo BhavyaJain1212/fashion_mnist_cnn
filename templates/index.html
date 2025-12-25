@@ -1,12 +1,14 @@
 <!-- templates/index.html -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fashion-MNIST VGG16 Predictor</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
   <div class="container">
     <h1>Fashion-MNIST Predictor</h1>
@@ -16,7 +18,8 @@
 
     <form method="POST">
       <label for="pixels">Please enter pixel values separated with comma</label>
-      <textarea id="pixels" name="pixels" placeholder="0,0,0, ..., 255 (total 784 values)" required>{{ request.form.get('pixels','') }}</textarea>
+      <textarea id="pixels" name="pixels" placeholder="0,0,0, ..., 255 (total 784 values)"
+        required>{{ request.form.get('pixels','') }}</textarea>
       <button type="submit">Predict</button>
     </form>
 
@@ -39,4 +42,5 @@
     </div>
   </div>
 </body>
+
 </html>
